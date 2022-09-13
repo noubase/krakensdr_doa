@@ -49,12 +49,23 @@ from scipy import fft
 from scipy import signal
 from pyargus import directionEstimation as de
 
+# Add compass support
+compass_port = "/dev/ttyUSB_bmm150"
+try:
+    sys.path.append('/home/krakenrf/compass')
+    from compass import Compass
+    hascompass = True
+    print("compass module available")
+except ModuleNotFoundError:
+    hascompass = False
+    print("Con't find compass module")
+
 # Make gpsd an optional component
 try:
     import gpsd
 
     hasgps = True
-    print("gpsd Available")
+    print("gpsd available")
 except ModuleNotFoundError:
     hasgps = False
     print("Can't find gpsd - ok if no external gps used")
@@ -164,6 +175,11 @@ class SignalProcessor(threading.Thread):
         self.en_data_record = False
         self.write_interval = 1
         self.last_write_time = [0] * self.max_vfos
+
+        self.hascompass = hascompass
+        if self.hascompass:
+            self.compass = Compass(compass_port)
+            self.hascompass = self.compass.enabled
 
     def resetPeakHold(self):
         if self.spectrum_fig_type == 'Single':
@@ -614,6 +630,9 @@ class SignalProcessor(threading.Thread):
                 self.latitude, self.longitude = packet.position()
                 if not self.fixed_heading:
                     self.heading = round(packet.movement().get('track'), 1)
+                if self.hascompass:
+                    self.heading = round(self.compass.getHeading(), 1)
+                    #packet.mag_var() !
                 self.gps_status = "Connected"
             except (gpsd.NoFixError, UserWarning):
                 self.latitude = self.longitude = 0.0
