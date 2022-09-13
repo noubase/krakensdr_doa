@@ -14,11 +14,6 @@ We have a beta Pi 4 SD card image available here
 
 **Latest Image:** https://github.com/krakenrf/krakensdr_doa/releases/
 
-**Older Images: **
-190522: https://drive.google.com/file/d/1e6AAR8uOb0MLig4TqesRi9qqQ-80J62k/view?usp=sharing
-
-150422: https://drive.google.com/file/d/1JT41DfkaYNSgGlxqaAvUwHQO_NwXewRW/view?usp=sharing 
-
 In this image the code will automatically run on boot. Note that it may take 2-3 minutes for the boot process to complete. 
 
 To run this code flash the image file to an SD Card using Etcher. The SD Card needs to be at least 8GB and we recommend using a class 10 card or faster. For advanced users the login/password details for SSH and terminal are "krakenrf"/"krakensdr"
@@ -50,34 +45,7 @@ To get the best performance we recommend adding aftermarket cooling to your Pi 4
     
 ### KerberosSDR Setup (KrakenSDR users Ignore)
 
-<details>
-    <summary>KerberosSDR Setup Information</summary>
-
-#### KerberosSDR BOOTING NOTE
-The Pi 4 hardware has a problem where it will not boot if a powered USB hub drawing current from the Pi 4 is plugged in. Inside the KerberosSDR is a powered USB hub and hence the Pi 4 will not boot if the KerberosSDR is plugged in. So please plug the KerberosSDR in after booting. For the KrakenSDR the hardware implementation forces external power only, so this problem does not occur. 
-    
-We strongly recommend making a small modification by removing a jumper on the KerberosSDR PCB to avoid this Pi 4 issue. This modification force external power only on the KerberosSDR by opening the enclosure, carefully removing the top calibration board, and then removing the `JP2` jumper from the PCB.
-
-![kerberos_jumper_mod](https://user-images.githubusercontent.com/78108016/163519259-bc6c8f37-87fc-4742-8f03-c3cae849e133.jpg)
-
-#### KerberosSDR EEPROM Update
-For KerberosSDR users you will need to initially flash the EEPROM to use the new serial numbering scheme. Connect a monitor and boot up the image file. The code will not start as the EEPROMs are incorrect.
-   
-There is a script in `~/krakensdr_doa/heimdall_daq_fw/util/eeprom_init.sh` that can guide your through this. Just plug in your KerberosSDR (ensuring it is powered from the power port), and run the script `./eeprom_init.sh`. The script will guide you to use the DIP switches to turn all units off, except the currently requested tuner. It will then flash the realtek_oem firmware, then the serial number, before asking you to turn off that tuner, and turn on the next one. Answer `Y` each time it asks to flash.
-
-Once the EEPROM is flashed you can reboot and follow the reconfiguration step below.
-
-#### KerberosSDR Reconfiguration
-The image is currently set up for the KrakenSDR. For KerberosSDR users, please update the EEPROM as described above first, then reboot. Once the web interface has loaded, expand the "Basic DAQ Settings" by clicking on the checkbox. Under "Preconfigured DAQ Files" select "kerberosSDR_default", and then click on "Reconfigure and Restart DAQ chain". This may take a minute or so, but after it's completed the software should connect and begin processing.
-
-#### KerberosSDR Retuning
-The KrakenSDR code is designed to autocalibrate phase on each retune. Unfortunately this feature is not available on the KerberosSDR due to the lack of a noise source switching circuit. So with the KerberosSDR every time you change the frequency or DAQ settings, you must make sure that you have the antennas disconnected. 
-    
-Also if you make any custom changes to the DAQ settings (which is not recommended), always ensure that `Calibration Track Mode` is set to `No Tracking` otherwise the software will attempt to recalibrate every X-minutes.
-
-Once you've set the center frequency, you can connect your antennas. In the Spectrum screen you can use 'click to tune' to tune to any frequency within the active bandwidth without needing to recalibrate.
-    
-</details>
+Consult the Wiki page at https://github.com/krakenrf/krakensdr_docs/wiki/11.-KerberosSDR-Setup-for-KrakenSDR-Software for information on setting up your KerberosSDR to work with the KrakenSDR software.
 
 ## Software Quick Start
 
@@ -90,8 +58,25 @@ Once you've set the center frequency, you can connect your antennas. In the Spec
 7) Connect to the Android App for map visualization (See Android Instructions - coming later)
 
 You can also 'click to tune' in the spectrum. Either by clicking on the spectrum graph or the waterfall at the frequency of interest.
-    
+
+## VirtualBox Image
+If you do not wish to use a Pi 4 as your KrakenSDR computing device, you can also use a Windows or Linux Laptop/PC with our VirtualBox pre-made image. This image file is currently in beta. It includes the KrakenSDR DOA, Passive Radar, and GNU Radio software.
+
+See our Wiki for more information about our VirtualBox Image and where to download it https://github.com/krakenrf/krakensdr_docs/wiki/10.-VirtualBox-and-Docker-Images#virtualbox
+
+## Docker Image
+
+See our Wiki for more information about the third party Docker image https://github.com/krakenrf/krakensdr_docs/wiki/10.-VirtualBox-and-Docker-Images#docker
+
 ## Manual Installation from a fresh OS
+
+### Install script
+
+You can use on of our install scripts to automate a manual install. Details on the Wiki at https://github.com/krakenrf/krakensdr_docs/wiki/10.-VirtualBox,-Docker-Images-and-Install-Scripts#install-scripts
+
+###  Manual Install
+
+Manual install is only required if you are not using the premade images, and are setting up the software from a clean system.
 
 1. Install the prerequisites
 
@@ -113,15 +98,15 @@ Please run the installs in this order as we need to ensure a specific version of
 ``` bash
 conda activate kraken
 
-conda install quart
 conda install pandas
 conda install orjson
 conda install matplotlib
 conda install requests
 
 pip3 install dash_bootstrap_components==1.1.0
-pip3 install quart_compress
-pip3 install dash_devices
+pip3 install quart_compress==0.2.1
+pip3 install quart==0.17.0
+pip3 install dash_devices==0.1.3
 pip3 install pyargus
 
 conda install dash==1.20.0
@@ -156,13 +141,13 @@ cp krakensdr_doa/util/kraken_doa_stop.sh .
 ./kraken_doa_start.sh
 ```
 
-Please be patient on the first run, at it can take 1-2 minutes for the JIT numba compiler to compile the numba optimized functions, and during this compilation time it may appear that the software has gotten stuck. On subsqeuent runs this loading time will be much faster as it will read from cache.
+Please be patient on the first run, as it can take 1-2 minutes for the JIT numba compiler to compile the numba optimized functions (on Pi 4 hardware), and during this compilation time it may appear that the software has gotten stuck. On subsqeuent runs this loading time will be much faster as it will read from cache.
 
 ### Remote operation
 
-*UNTESTED*
+With remote operation you can run the DAQ on one machine on your network, and the DSP software on another. 
 
-1. Start the DAQ Subsystem either remotely. (Make sure that the `daq_chain_config.ini` contains the proper configuration) 
+1. Start the heimdall DAQ subsystem on your remote computing device. (Make sure that the `daq_chain_config.ini` contains the proper configuration) 
     (See:https://github.com/krakenrf/heimdall_daq_fw/Documentation)
 2. Set the IP address of the DAQ Subsystem in the `settings.json`, `default_ip` field.
 3. Start the DoA DSP software by typing:
